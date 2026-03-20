@@ -1,11 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage (){
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [message, setMessage] = useState("")
+    const router = useRouter()
 
     useEffect(() => {
         document.title = "Login"
@@ -18,8 +20,9 @@ export default function LoginPage (){
             return
         }
         try {
-            const response = await fetch("/api/login", {
+            const response = await fetch("http://localhost:8000/login", {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -36,6 +39,7 @@ export default function LoginPage (){
 
                 {/* track info after login   */}
                 localStorage.setItem("username", data.username)
+                router.push("/")
             } else {
                 setMessage(data.detail || "Login failed")
             }
@@ -43,6 +47,21 @@ export default function LoginPage (){
             setMessage("Server error")
         } 
     }
+
+    useEffect(() =>{
+        async function checkLogin() {
+            try {
+                const res = await fetch("http://localhost:8000/user", {
+                    credentials: "include",
+                })
+                
+                if (res.ok) {
+                    router.push("/")
+                }
+            } catch {}
+        }
+        checkLogin()
+    }, [])
 
     return (
         <main>

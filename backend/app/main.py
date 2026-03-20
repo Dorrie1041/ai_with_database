@@ -1,13 +1,25 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Cookie, Response
 from sqlalchemy.orm import Session
 
 from .db import get_db, test_connection
 from .schemas import RegisterRequest, LoginRequest
 from .models import User
 from .auth import hash_password, verify_password
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 def root():
@@ -45,17 +57,41 @@ def register(user_data: RegisterRequest, db: Session = Depends(get_db)):
     }
 
 @app.post("/login")
-def login(user_data: LoginRequest, db: Session = Depends(get_db)):
+def login(user_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_data.email.lower()).first()
 
     if not user:
         raise HTTPException(status_code=401, detail="The email is incorrect or not exist")
     if not verify_password(user_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="The password incorrect")
-    
+    response.set_cookie(
+        key="user_id",
+        value=str(user.user_id),
+        httponly=True,
+    )
+
     return {
         "message": "Login successful",
         "user_id": str(user.user_id),
         "username": user.username,
         "email": user.email,
     }
+
+@app.get("/user")
+def get_user(user_id: str = Cookie(None), db: Session = Depends(get_db)):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    user = db.query(User).filter(User.user_id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return{
+        "username": user.username,
+        "email": user.email,
+    }
+
+@app.post("/logout")
+def logout(response: Response):
+    response.delete_cookie("user_id")
+    return {"message": "Logged out"}
