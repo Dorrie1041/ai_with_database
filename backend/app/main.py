@@ -1,11 +1,15 @@
-from fastapi import FastAPI, HTTPException, Depends, Cookie, Response
+from fastapi import FastAPI, HTTPException, Depends, Cookie, Response, UploadFile, File
 from sqlalchemy.orm import Session
 
 from .db import get_db, test_connection
 from .schemas import RegisterRequest, LoginRequest
-from .models import User
+from .models import User, UploadedFile
 from .auth import hash_password, verify_password
 from fastapi.middleware.cors import CORSMiddleware
+import shutil
+import os
+from .storage import upload_file_to_gcs
+import uuid
 
 
 app = FastAPI()
@@ -95,3 +99,42 @@ def get_user(user_id: str = Cookie(None), db: Session = Depends(get_db)):
 def logout(response: Response):
     response.delete_cookie("user_id")
     return {"message": "Logged out"}
+
+@app.post("/upload")
+def upload_file(file: UploadFile=File(...),
+                user_id: str = Cookie(None), 
+                db: Session = Depends(get_db)):
+    print("cookie user_id", user_id)
+    if not user_id:
+        raise HTTPException(status_code= 401, detail="Not logged in")
+
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+
+    stored_filename = f"{uuid.uuid4()}-{file.filename}"
+    gcs_object_name = f"uploads/{user_id}/{stored_filename}"
+
+    upload_file_to_gcs(
+        file.file,
+        destination_blob_name=gcs_object_name,
+        content_type=file.content_type,
+    )
+
+    new_file = UploadedFile(
+        user_id=user_id,
+        original_filename=file.filename,
+        stored_filename=stored_filename,
+        file_size_bytes=file_size,
+        storage_path = gcs_object_name,
+    )
+
+    db.add(new_file)
+    db.commit()
+    db.refresh(new_file)
+
+    return {"message": "File uploaded successfully",
+            "file_id": str(new_file.file_id),
+            "original_filename": new_file.original_filename,
+            "stored_filename": new_file.stored_filename,
+            "gcs_object_name": gcs_object_name,}
