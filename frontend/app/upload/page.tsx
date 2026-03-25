@@ -4,10 +4,16 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 export default function UploadPage(){
+    type FileItem = {
+        file_id: string
+        original_filename: string
+    }
     const [message, setMessage] = useState("")
     const [file, setFile] = useState<File | null>(null)
     const [username, setUsername] = useState("")
     const [loading, setLoading] = useState(false)
+    const [files, setFiles] = useState<FileItem[]>([])
+    const [files_message, setfiles_message] = useState("")
     
     const router = useRouter()
 
@@ -30,6 +36,7 @@ export default function UploadPage(){
             } 
         }
         CheckUser()
+        handleFiles()
     }, [router])
 
         async function handleUpload() {
@@ -55,6 +62,7 @@ export default function UploadPage(){
                 if (response.ok){
                     setMessage(`Upload successful: ${data.original_filename}`)
                     setFile(null)
+                    await handleFiles()
                 } else {
                     setMessage(data.detail || "Upload failed. ")
                 }
@@ -75,6 +83,51 @@ export default function UploadPage(){
                 console.log("Logout failed")
             }
             router.push("/login")
+        }
+
+        async function handleFiles() {
+            try {
+                const res = await fetch("http://localhost:8000/files", {
+                    method: "GET",
+                    credentials: "include",
+                })
+
+                if (!res.ok){
+                    setfiles_message("Can not get files")
+                    return
+                }
+
+                const data = await res.json()
+                setFiles(data)
+                setfiles_message("")
+                
+                
+            } catch (error){
+                console.log("Get files failed")
+                setfiles_message("Server error")
+            }
+            
+        }
+
+        async function handleDownload(fileId: string){
+            try {
+                const res = await fetch(
+                    `http://localhost:8000/files/${fileId}/download`,
+                    {
+                        credentials: "include",
+                    }
+                )
+
+                const data = await res.json()
+
+                if (res.ok){
+                    window.open(data.download_url, "_blank")
+                } else {
+                    setfiles_message(data.detail || "Download failed")
+                }
+            } catch (error) {
+                setfiles_message("Server error")
+            }
         }
 
         return (
@@ -101,6 +154,25 @@ export default function UploadPage(){
                     <p>
                         {message}
                     </p>
+                )}
+
+                <h2>Your Files</h2>
+                {files_message && <p>{files_message}</p>}
+                {files.length === 0 ?(
+                    <p>No files uploaded</p>
+                ) : (
+                    <ul>
+                        {files.map((file) => (
+                            <li key={file.file_id}>
+                                {file.original_filename}
+                                <button
+                                    onClick={() => handleDownload(file.file_id)}
+                                >
+                                    Download
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
                 )}
             </main>
         )

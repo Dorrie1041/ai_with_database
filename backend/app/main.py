@@ -6,9 +6,7 @@ from .schemas import RegisterRequest, LoginRequest
 from .models import User, UploadedFile
 from .auth import hash_password, verify_password
 from fastapi.middleware.cors import CORSMiddleware
-import shutil
-import os
-from .storage import upload_file_to_gcs
+from .storage import upload_file_to_gcs, generate_signed_download_url
 import uuid
 
 
@@ -138,3 +136,60 @@ def upload_file(file: UploadFile=File(...),
             "original_filename": new_file.original_filename,
             "stored_filename": new_file.stored_filename,
             "gcs_object_name": gcs_object_name,}
+
+@app.get("/files")
+def list_files(
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    files = (
+        db.query(UploadedFile).filter(UploadedFile.user_id == user_id)
+        .order_by(UploadedFile.created_at.desc())
+        .all()
+    )
+
+    return [
+        {
+            "file_id": str(file.file_id),
+            "original_filename": file.original_filename,
+            "stored_filename": file.stored_filename,
+            "file_size_bytes": file.file_size_bytes,
+            "storage_path": file.storage_path,
+            "created_at": file.created_at.isoformat() if file.created_at else None,
+        }
+        for file in files
+    ]
+
+@app.get("/files/{file_id}/download")
+def download_file(
+    file_id: str,
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    file = (
+        db.query(UploadedFile)
+        .filter(UploadedFile.file_id == file_id)
+        .first()
+    )
+
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if str(file.user_id) != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    if not file.storage_path:
+        raise HTTPException(status_code=400, detail="Missing storage path")
+    
+    download_url = generate_signed_download_url(file.storage_path)
+
+    return {
+        "download_url": download_url,
+        "filename": file.original_filename,
+    }
