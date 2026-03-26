@@ -6,7 +6,7 @@ from .schemas import RegisterRequest, LoginRequest
 from .models import User, UploadedFile
 from .auth import hash_password, verify_password
 from fastapi.middleware.cors import CORSMiddleware
-from .storage import upload_file_to_gcs, generate_signed_download_url
+from .storage import upload_file_to_gcs, generate_signed_download_url, generate_signed_preview_url, delete_file_from_gcs
 import uuid
 
 
@@ -193,3 +193,61 @@ def download_file(
         "download_url": download_url,
         "filename": file.original_filename,
     }
+
+@app.get("/files/{file_id}/preview")
+def preview_file(
+    file_id: str,
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    file = (db.query(UploadedFile).
+            filter(UploadedFile.file_id == file_id).
+            first())
+
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    if str(file.user_id) != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    if not file.storage_path:
+        raise HTTPException(status_code=400, detail="Missing storage path")
+    
+    preview_url = generate_signed_preview_url(file.storage_path)
+
+    return {
+        "preview_url": preview_url,
+        "filename": file.original_filename,
+    }
+    
+
+@app.delete("/files/{file_id}")
+def delete_file(
+    file_id: str,
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    file = (db.query(UploadedFile).
+            filter(UploadedFile.file_id == file_id).
+            first())
+
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if str(file.user_id) != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    if file.storage_path:
+        delete_file_from_gcs(file.storage_path)
+    
+    db.delete(file)
+    db.commit()
+
+    return {"message" : "File {file_id} deleted successfully"}
+        

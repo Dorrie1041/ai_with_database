@@ -36,7 +36,18 @@ def generate_signed_download_url(blob_name: str) -> str:
     )
     return url
 
+# create the preview url 
+def generate_signed_preview_url(blob_name: str) -> str:
+    blob = bucket.blob(blob_name)
+    url = blob.generate_signed_url(
+        version="v4",
+        expiration=timedelta(minutes=15),
+        method="GET",
+    )
+    return url
+
 # delete file from the Google Cloud Storage
 def delete_file_from_gcs(blob_name: str) -> None:
     blob = bucket.blob(blob_name)
     blob.delete()
+
