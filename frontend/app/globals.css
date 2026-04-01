@@ -1,3 +1,80 @@
+.logout {
+  height: 44px;
+  padding: 0 20px;
+}
+
+.logout:hover {
+  color: #0070f3;
+}
+
+.login-button {
+  height: 44px;
+  padding: 0 20px;
+  color: white;
+  background-color: red;
+  border-radius: 6px;
+  width: 100px;
+  border: none;
+  cursor: pointer;
+}
+
+.login-button:hover {
+  background-color: brown;
+}
+
+.login-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box; 
+  align-items: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 450px;
+  background-color: #edeaeae2;
+  border-radius: 12px;
+  padding: 32px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.login-title {
+  margin: 0 0 24px 0;
+  text-align: center;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+
+.login-field {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.login-label {
+  width: 70px;
+  font-size: 16px;
+}
+
+.login-input {
+  height: 30px;
+  width: 200px;
+  padding: 0 10px;
+  border: 1px solid #fafafa;
+  border-radius: 6px;
+}
+
+
 .layout-nav {
   display: flex;
   padding: 15px;
@@ -15,4 +92,76 @@
 
 .layout-nav-link:hover {
   color: #0070f3;
+}
+
+
+
+
+
+.agent-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+.agent-div-1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.agent-files-choose {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.agent-chat {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 16px;
+  background-color: #fafafa;
+  margin-bottom: 16px;
+}
+
+.agent-loading{
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.agent-loading-2{
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background-color: #e5e7eb;
+}
+
+.agent-input-div{
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.agent-input{
+  flex: 1;
+  resize: none;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+  font-size: 16px;
+}
+
+.agent-send-button{
+  height: 44px;
+  padding: 0 20px;
 }

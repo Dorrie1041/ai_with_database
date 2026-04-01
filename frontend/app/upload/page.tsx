@@ -130,11 +130,53 @@ export default function UploadPage(){
             }
         }
 
+        async function handlePreview(fileId: string) {
+            try {
+                const response = await fetch(
+                    `http://localhost:8000/files/${fileId}/preview`,
+                    {
+                        method: "GET",
+                        credentials: "include"
+                    })
+
+                    const data = await response.json()
+
+                    if (response.ok){
+                        window.open(data.preview_url, "_blank")
+                    } else {
+                        setfiles_message(data.detail || "Preview failed")
+                    }
+            } catch (error){
+                setfiles_message("Server error")
+            }
+        }
+
+        async function handleDelete(fileId: string) {
+            try {
+                const response = await fetch(`http://localhost:8000/files/${fileId}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                })
+
+                const data = await response.json()
+
+                if (response.ok){
+                    setfiles_message("File deleted successfully")
+                    await handleFiles()
+                } else {
+                    setfiles_message(data.detail || "Detele failed")
+                }
+            } catch (error){
+                setfiles_message("Server error")
+            }   
+        }
+
         return (
             <main>
                 <h1>Upload File</h1>
                 <p>Hello, {username}</p>
                 <input type="file"
+                       accept=".csv,.json" 
                        onChange={(e) => setFile(e.target.files?.[0] || null)}>
                 </input>    
 
@@ -166,9 +208,21 @@ export default function UploadPage(){
                             <li key={file.file_id}>
                                 {file.original_filename}
                                 <button
+                                    onClick={() => handlePreview(file.file_id)}
+                                >
+                                    Preview
+                                </button>
+
+                                <button
                                     onClick={() => handleDownload(file.file_id)}
                                 >
                                     Download
+                                </button>
+
+                                <button
+                                    onClick={() => handleDelete(file.file_id)}
+                                >
+                                    Delete
                                 </button>
                             </li>
                         ))}
