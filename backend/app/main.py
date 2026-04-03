@@ -6,8 +6,9 @@ from .schemas import RegisterRequest, LoginRequest
 from .models import User, UploadedFile
 from .auth import hash_password, verify_password
 from fastapi.middleware.cors import CORSMiddleware
-from .storage import upload_file_to_gcs, generate_signed_download_url, generate_signed_preview_url, delete_file_from_gcs
+from .storage import upload_file_to_gcs, generate_signed_download_url, generate_signed_preview_url, delete_file_from_gcs, download_file_from_gcs
 import uuid
+from .ai_agent import analyze_file_with_ai 
 
 
 app = FastAPI()
@@ -105,6 +106,13 @@ def upload_file(file: UploadFile=File(...),
     print("cookie user_id", user_id)
     if not user_id:
         raise HTTPException(status_code= 401, detail="Not logged in")
+    
+
+    filename = file.filename.lower()
+
+    if not (filename.endswith(".csv") or filename.endswith(".json")):
+        raise HTTPException(status_code=400, detail="Only CSV and JSON files are allowed")
+        
 
     file.file.seek(0, 2)
     file_size = file.file.tell()
@@ -251,3 +259,40 @@ def delete_file(
 
     return {"message" : "File {file_id} deleted successfully"}
         
+
+@app.post("/agent/chat")
+def agent_chat(
+    data: dict,
+    user_id: str = Cookie(None),
+    db: Session = Depends(get_db)
+):
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    file_id = data.get("file_id")
+    message = data.get("message")
+
+    if not file_id or not message:
+        raise HTTPException(status_code=400, detail="Missing data")
+    
+    file = db.query(UploadedFile).filter(UploadedFile.file_id == file_id).first()
+
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if str(file.user_id) != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    local_path = f"/tmp/{file.stored_filename}"
+
+    download_file_from_gcs(file.storage_path, local_path)
+
+    reply = analyze_file_with_ai(local_path, message)
+
+    return {
+        "reply": reply
+    }
+    
+
+
+

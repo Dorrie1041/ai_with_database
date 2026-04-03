@@ -1,6 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import {useRouter} from "next/navigation"
+import { FaEye, FaEyeSlash } from "react-icons/fa"
+import "../globals.css"
 
 export default function RegisterPage() {
     const [email, setEmail] = useState("")
@@ -8,6 +11,8 @@ export default function RegisterPage() {
     const [password, setPassword] = useState("")
     const [confirm_pass, setComfirm_pass] = useState("")
     const [message, setMessage] = useState("")
+    const router = useRouter()
+    const [showPassword, setshowPassword] = useState(false)
 
     useEffect (() => {
     document.title = "Register"
@@ -18,6 +23,11 @@ export default function RegisterPage() {
 
         if (!email || !username || !password || !confirm_pass) {
             setMessage("Please fill in all Fields")
+            return
+        }
+
+        if (!email.includes("@")){
+            setMessage("Please enter a valid email address")
             return
         }
 
@@ -44,6 +54,7 @@ export default function RegisterPage() {
 
                 if (response.ok) {
                     setMessage("Register successful")
+                    router.push("/login")
                 } else {
                     setMessage(data.detail || "Register failed")
                 } 
@@ -53,40 +64,64 @@ export default function RegisterPage() {
         }
     }
     return (
-        <main>
-            <h1>Register</h1>
-            <form onSubmit={handleRegister}>
-                <div>
-                    <label>Email: </label>
-                    <input type="email" value={email} 
+        <main className="register-main">
+            <div className="register-card">
+            <h1 className="register-title">Register</h1>
+            <form onSubmit={handleRegister} className="register-form">
+                <div className="register-field">
+                    <label className="register-label">Email: </label>
+                    <input className="register-input" type="email" value={email} 
                     onChange={(e) => setEmail(e.target.value)}>
                     </input>
                 </div>
 
-                <div>
-                    <label>Username: </label>
-                    <input type="text" value={username}
+                <div className="register-field">
+                    <label className="register-label">Username: </label>
+                    <input className="register-input" type="text" value={username}
                     onChange={(e) => setUsername(e.target.value)}>
                     </input>
                 </div>
 
-                <div>
-                    <label>Password:</label>
-                    <input type="password" value={password}
+                <div className="register-field">
+                    <label className="register-label">Password:</label>
+                    <div className="password-wrapper">
+                    <input className="register-input" 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
                     onChange={(e) => setPassword(e.target.value)}>
                     </input>
+                    <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={() => setshowPassword((prev) => !prev)}
+                    >
+                        {showPassword ? <FaEyeSlash/>:< FaEye/>}
+                    </button>
+                    </div>
                 </div>
 
-                <div>
-                    <label>Comfirm Password:</label>
-                    <input type="password" value={confirm_pass}
+                <div className="register-field">
+                    <label className="register-label">Comfirm Password:</label>
+                    <div className="password-wrapper">
+                    <input className="register-input" 
+                    type={showPassword ? "text" : "password"} 
+                    value={confirm_pass}
                     onChange={(e) => setComfirm_pass(e.target.value)}>
                     </input>
+                    <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={() => setshowPassword((prev) => !prev)}
+                    >
+                        {showPassword ? <FaEyeSlash/> : <FaEye/>}
+                    </button>
+                    </div>
                 </div>
-                <button type="submit">Register</button>
+                <button className="register-button" type="submit" formNoValidate>Register</button>
             </form>
 
-            <p>{message}</p>
+            <p className="register-message">{message}</p>
+        </div>
         </main>
     )
 }

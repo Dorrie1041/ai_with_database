@@ -51,3 +51,7 @@ def delete_file_from_gcs(blob_name: str) -> None:
     blob = bucket.blob(blob_name)
     blob.delete()
 
+# download file to the local path
+def download_file_from_gcs(blob_name: str, local_path: str):
+    blob = bucket.blob(blob_name)
+    blob.download_to_filename(local_path)
